@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" /> 
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <style>
+table,
+th,
+td {
+  border: 1px solid black;
+}
+
+table {
+  table-layout: fixed;
+}
+
+p {
+  page-break-before: always;
+}
+
+@media print
+{
+    #pager,
+    form,
+    .no-print
+    {
+        display: none !important;
+        height: 0;
+    }
+
+
+    .no-print, .no-print *{
+        display: none !important;
+        height: 0;
+    }
+}
+    </style>
+  </head>
+  <body>
+<div class="no-print">
+<h1>Table</h1>
+<div id="topdiv">
+<form id="myform">
+
+<div class="filters">
+
+<label for="cols">Columns</label>
+<select id="cols" onChange="resizeTables();return false;">
+  <option value="1">1</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4</option>
+  <option value="5" selected="selected">5</option>
+  <option value="6">6</option>
+  <option value="7">7</option>
+  <option value="8">8</option>
+  <option value="9">9</option>
+  <option value="10">10</option>
+<!--
+  <option value="11">11</option>
+  <option value="12">12</option>
+  <option value="13">13</option>
+  <option value="14">14</option>
+  <option value="15">15</option>
+-->
+</select>
+
+<!--
+<br/><br/>
+<div class="wids">
+<div class="wid" id="z">
+<label for="wikitreeID1">Person</label>
+<input id="wikitreeID1" type="string" value="Côté-1395">
+</div>
+</div>
+
+<br/><br/>
+<input type="submit" value="Go" onClick="refreshTables();return false;" />
+-->
+</form>
+</div>
+
+<br/>
+
+</div>
+</div>
+
+<div id="content"> </div>
+
+<p class="no-print">
+Copyright (c) 2017 yulvil <a href="https://github.com/yulvil/wikitree">Source (github)</a>
+</p>
+
+    <script>
+"use strict;";
+
+let SERVER_NAME = "https://www.pbcote.com/wikitree/fcgi-bin/ancestors.fcgi";
+
+// build the HTML table and assign an id to each cell
+function addTable(tname, cols, parent) {
+	let nbrows = Math.floor(Math.pow(2, cols - 1));
+	var t = parent.append("table").attr("id", tname).attr("style", "width:100%");
+	printRow(t, t.append("tr"), nbrows, tname + "_1");
+	return t;
+}
+
+function printRow(t, tr, n, id) {
+	if (n == 1) {
+		tr.append("td").attr("rowspan", 1).attr("id", id);
+	} else {
+		tr.append("td").attr("rowspan", n).attr("id", id);
+		printRow(t, tr, n / 2, id + "-1");
+		printRow(t, t.append("tr"), n / 2, id + "-2");
+	}
+}
+
+function rebuildTree(data) {
+	let m = {};
+	for (let i = 0; i < data.length; i++) {
+		m[data[i].Id] = data[i];
+	}
+
+	for (let i = 0; i < data.length; i++) {
+		if (+data[i].Father > 0) {
+			data[i].xFather = m[data[i].Father]
+		}
+		if (+data[i].Mother > 0) {
+			data[i].xMother = m[data[i].Mother]
+		}
+	}
+}
+
+function populateCell(node, id) {
+	var tdsel = d3.select(`td[id=${id}]`);
+	tdsel.append("a").attr("href", "https://www.wikitree.com/wiki/" + node.Name).text(node.ShortName);
+	tdsel.append("div").text(getDateRange(node));
+}
+
+function visit(node, depth, id, f) {
+	if (node === null || node === undefined) {
+		return;
+	}
+
+	f(node, id);
+
+	visit(node.xFather, depth + 1, id + "-1", f);
+	visit(node.xMother, depth + 1, id + "-2", f);
+}
+
+function loadData(wid, cols, mydata, i) {
+	return function (error, data) {
+		if (error) {
+			throw error;
+		}
+		rebuildTree(data[0].ancestors);
+		mydata[wid] = data[0].ancestors;
+
+		let p = d3.select("#p" + i);
+		//p.append("h1").text(mydata[wid][0].ShortName).attr("id", (d,i) => "h" + i);
+		addTable("t" + i, cols, p);
+		visit(mydata[wid][0], 0, "t" + i + "_1", populateCell);
+	}
+}
+
+function getDateRange(d) {
+	if (d == undefined) {
+		return "";
+	}
+	let bb = "",
+	dd = "";
+	if (d.BirthDate !== "0000-00-00") {
+		bb = d.BirthDate + " ";
+	}
+	if (d.DeathDate !== "0000-00-00") {
+		dd = " " + d.DeathDate;
+	}
+	return bb + "-" + dd;
+}
+
+let mydata = {};
+
+function resizeTables() {
+	let cols = document.getElementById("cols").value;
+	var params = new URLSearchParams(location.search);
+	let wids = params.getAll("wid");
+	console.log('wids', wids);
+	if (wids.length == 0) {
+		return;
+	}
+	for (let i = 0; i < wids.length; i++) {
+		let p = d3.select("#p" + i);
+		p.html("");
+		//p.append("h1").text(mydata[wid][0].ShortName).attr("id", (d,i) => "h" + i);
+		addTable("t" + i, cols, p);
+		visit(mydata[wids[i]][0], 0, "t" + i + "_1", populateCell);
+	}
+}
+
+function updateAll(wids, cols) {
+	let sel = d3.select("#content").selectAll(".tree").data(wids, d => d);
+	sel.exit().remove();
+	// let selEnter = sel.enter();
+	let p = sel.enter().append("p").attr("class", "tree").attr("id", (d, i) => "p" + i).attr("style", "page-break-before: always");
+	// p.append("h1").text(d => d).attr("id", (d,i) => "h" + i);
+
+	for (let i = 0; i < wids.length; i++) {
+		let url = `${SERVER_NAME}?wid=${wids[i]}&depth=${cols}`;
+		d3.json(url, loadData(wids[i], cols, mydata, i));
+	}
+}
+
+function pageLoad() {
+	var params = new URLSearchParams(location.search);
+	let wids = params.getAll("wid");
+	let cols = params.get("depth") || 3;
+	document.querySelector("#cols").selectedIndex = cols-1;
+
+	if (wids.length > 0) {
+		updateAll(wids, cols);
+	}
+
+	//let sel = d3.select(".wids").selectAll(".wid").data(wids, d => d);
+	//sel.exit().remove();
+	//let selEnter = sel.enter().append("div").attr("class", "wid");
+	//selEnter.append("label").attr("for", (d,i) => "wikitreeID" + i).text((d,i) => "Person " + i);
+	//selEnter.append("input").attr("type", "string").attr("value", d => d).attr("id", (d,i) => "wikitreeID" + i);
+}
+
+pageLoad();
+
+</script>
+
+	</body>
+</html>
