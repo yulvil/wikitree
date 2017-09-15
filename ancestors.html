@@ -196,7 +196,7 @@ function resizeTables() {
 	}
 }
 
-function updateAll(wids, cols) {
+function updateAll(wids, cols, depth) {
 	let sel = d3.select("#content").selectAll(".tree").data(wids, d => d);
 	sel.exit().remove();
 	// let selEnter = sel.enter();
@@ -204,7 +204,7 @@ function updateAll(wids, cols) {
 	// p.append("h1").text(d => d).attr("id", (d,i) => "h" + i);
 
 	for (let i = 0; i < wids.length; i++) {
-		let url = `${SERVER_NAME}?wid=${wids[i]}&depth=${cols}`;
+		let url = `${SERVER_NAME}?wid=${wids[i]}&depth=${depth-1}`;
 		d3.json(url, loadData(wids[i], cols, mydata, i));
 	}
 }
@@ -212,11 +212,12 @@ function updateAll(wids, cols) {
 function pageLoad() {
 	var params = new URLSearchParams(location.search);
 	let wids = params.getAll("wid");
-	let cols = params.get("depth") || 3;
+	let cols = params.get("view") || 5;
+	let depth = params.get("load") || 7;
 	document.querySelector("#cols").selectedIndex = cols-1;
 
 	if (wids.length > 0) {
-		updateAll(wids, cols);
+		updateAll(wids, cols, depth);
 	}
 
 	//let sel = d3.select(".wids").selectAll(".wid").data(wids, d => d);
