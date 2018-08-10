@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" /> 
-    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
     <style>
 table,
 th,
@@ -38,7 +38,7 @@ p {
   </head>
   <body>
 <div class="no-print">
-<h1>Table</h1>
+<h1>Wikitree Ancestors</h1>
 <div id="topdiv">
 <form id="myform">
 
@@ -88,7 +88,7 @@ p {
 <div id="content"> </div>
 
 <p class="no-print">
-Copyright (c) 2017 yulvil <a href="https://github.com/yulvil/wikitree">Source (github)</a>
+Copyright (c) 2018 yulvil <a href="https://github.com/yulvil/wikitree">Source (github)</a>
 </p>
 
     <script>
@@ -147,19 +147,14 @@ function visit(node, depth, id, f) {
 	visit(node.xMother, depth + 1, id + "-2", f);
 }
 
-function loadData(wid, cols, mydata, i) {
-	return function (error, data) {
-		if (error) {
-			throw error;
-		}
-		rebuildTree(data[0].ancestors);
-		mydata[wid] = data[0].ancestors;
+function loadData(wid, cols, mydata, i, data) {
+	rebuildTree(data[0].ancestors);
+	mydata[wid] = data[0].ancestors;
 
-		let p = d3.select("#p" + i);
-		//p.append("h1").text(mydata[wid][0].ShortName).attr("id", (d,i) => "h" + i);
-		addTable("t" + i, cols, p);
-		visit(mydata[wid][0], 0, "t" + i + "_1", populateCell);
-	}
+	let p = d3.select("#p" + i);
+	//p.append("h1").text(mydata[wid][0].ShortName).attr("id", (d,i) => "h" + i);
+	addTable("t" + i, cols, p);
+	visit(mydata[wid][0], 0, "t" + i + "_1", populateCell);
 }
 
 function getDateRange(d) {
@@ -183,7 +178,7 @@ function resizeTables() {
 	let cols = document.getElementById("cols").value;
 	var params = new URLSearchParams(location.search);
 	let wids = params.getAll("wid");
-	console.log('wids', wids);
+
 	if (wids.length == 0) {
 		return;
 	}
@@ -205,7 +200,7 @@ function updateAll(wids, cols, depth) {
 
 	for (let i = 0; i < wids.length; i++) {
 		let url = `${SERVER_NAME}?wid=${wids[i]}&depth=${depth-1}`;
-		d3.json(url, loadData(wids[i], cols, mydata, i));
+		d3.json(url).then(data => loadData(wids[i], cols, mydata, i, data));
 	}
 }
 
@@ -215,6 +210,10 @@ function pageLoad() {
 	let cols = params.get("view") || 5;
 	let depth = params.get("load") || 7;
 	document.querySelector("#cols").selectedIndex = cols-1;
+
+	if (wids.length == 0) {
+		wids = params.get("wids").split(",");
+	}
 
 	if (wids.length > 0) {
 		updateAll(wids, cols, depth);
