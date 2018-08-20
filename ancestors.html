@@ -163,10 +163,14 @@ function getDateRange(d) {
 	}
 	let bb = "",
 	dd = "";
-	if (d.BirthDate !== "0000-00-00") {
+	if (!d.BirthDate) {
+		bb = "? "
+	} else if (d.BirthDate !== "0000-00-00") {
 		bb = d.BirthDate + " ";
 	}
-	if (d.DeathDate !== "0000-00-00") {
+	if (!d.DeathDate) {
+		dd = " ?"
+	} else if (d.DeathDate !== "0000-00-00") {
 		dd = " " + d.DeathDate;
 	}
 	return bb + "-" + dd;
