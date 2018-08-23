@@ -100,17 +100,17 @@ let SERVER_NAME = "https://www.pbcote.com/wikitree/fcgi-bin/ancestors.fcgi";
 function addTable(tname, cols, parent) {
 	let nbrows = Math.floor(Math.pow(2, cols - 1));
 	var t = parent.append("table").attr("id", tname).attr("style", "width:100%");
-	printRow(t, t.append("tr"), nbrows, tname + "_1");
+	printRow(t, t.append("tr"), nbrows, tname, 0);
 	return t;
 }
 
-function printRow(t, tr, n, id) {
+function printRow(t, tr, n, tname, id) {
 	if (n == 1) {
-		tr.append("td").attr("rowspan", 1).attr("id", id);
+		tr.append("td").attr("rowspan", 1).attr("id", tname + "_" + id);
 	} else {
-		tr.append("td").attr("rowspan", n).attr("id", id);
-		printRow(t, tr, n / 2, id + "-1");
-		printRow(t, t.append("tr"), n / 2, id + "-2");
+		tr.append("td").attr("rowspan", n).attr("id", tname + "_" + id);
+		printRow(t, tr, n / 2, tname, 2*id + 1);
+		printRow(t, t.append("tr"), n / 2, tname, 2*id + 2);
 	}
 }
 
@@ -131,7 +131,7 @@ function rebuildTree(data) {
 }
 
 function populateCell(node, prefix, index) {
-	var id = `${prefix}${index}`;
+	var id = `${prefix}_${index}`;
 	var tdsel = d3.select(`td[id=${id}]`);
 	tdsel.append("a").attr("href", "https://www.wikitree.com/wiki/" + node.Name).text(node.ShortName);
 	tdsel.append("div").text(getDateRange(node));
@@ -144,8 +144,8 @@ function visit(node, depth, prefix, index, f) {
 
 	f(node, prefix, index);
 
-	visit(node.xFather, depth + 1, prefix, index + "-1", f);
-	visit(node.xMother, depth + 1, prefix, index + "-2", f);
+	visit(node.xFather, depth + 1, prefix, 2*index + 1, f);
+	visit(node.xMother, depth + 1, prefix, 2*index + 2, f);
 }
 
 function loadData(wid, cols, mydata, i, data) {
@@ -155,7 +155,7 @@ function loadData(wid, cols, mydata, i, data) {
 	let p = d3.select("#p" + i);
 	//p.append("h1").text(mydata[wid][0].ShortName).attr("id", (d,i) => "h" + i);
 	addTable("t" + i, cols, p);
-	visit(mydata[wid][0], 0, "t" + i, "_1", populateCell);
+	visit(mydata[wid][0], 0, "t" + i, 0, populateCell);
 }
 
 function getDateRange(d) {
@@ -185,6 +185,10 @@ function resizeTables() {
 	let wids = params.getAll("wid");
 
 	if (wids.length == 0) {
+		wids = params.get("wids").split(",");
+	}
+
+	if (wids.length == 0) {
 		return;
 	}
 	for (let i = 0; i < wids.length; i++) {
@@ -192,7 +196,7 @@ function resizeTables() {
 		p.html("");
 		//p.append("h1").text(mydata[wid][0].ShortName).attr("id", (d,i) => "h" + i);
 		addTable("t" + i, cols, p);
-		visit(mydata[wids[i]][0], 0, "t" + i, "_1", populateCell);
+		visit(mydata[wids[i]][0], 0, "t" + i, 0, populateCell);
 	}
 }
 
