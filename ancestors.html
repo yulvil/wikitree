@@ -130,21 +130,22 @@ function rebuildTree(data) {
 	}
 }
 
-function populateCell(node, id) {
+function populateCell(node, prefix, index) {
+	var id = `${prefix}${index}`;
 	var tdsel = d3.select(`td[id=${id}]`);
 	tdsel.append("a").attr("href", "https://www.wikitree.com/wiki/" + node.Name).text(node.ShortName);
 	tdsel.append("div").text(getDateRange(node));
 }
 
-function visit(node, depth, id, f) {
+function visit(node, depth, prefix, index, f) {
 	if (node === null || node === undefined) {
 		return;
 	}
 
-	f(node, id);
+	f(node, prefix, index);
 
-	visit(node.xFather, depth + 1, id + "-1", f);
-	visit(node.xMother, depth + 1, id + "-2", f);
+	visit(node.xFather, depth + 1, prefix, index + "-1", f);
+	visit(node.xMother, depth + 1, prefix, index + "-2", f);
 }
 
 function loadData(wid, cols, mydata, i, data) {
@@ -154,7 +155,7 @@ function loadData(wid, cols, mydata, i, data) {
 	let p = d3.select("#p" + i);
 	//p.append("h1").text(mydata[wid][0].ShortName).attr("id", (d,i) => "h" + i);
 	addTable("t" + i, cols, p);
-	visit(mydata[wid][0], 0, "t" + i + "_1", populateCell);
+	visit(mydata[wid][0], 0, "t" + i, "_1", populateCell);
 }
 
 function getDateRange(d) {
@@ -191,7 +192,7 @@ function resizeTables() {
 		p.html("");
 		//p.append("h1").text(mydata[wid][0].ShortName).attr("id", (d,i) => "h" + i);
 		addTable("t" + i, cols, p);
-		visit(mydata[wids[i]][0], 0, "t" + i + "_1", populateCell);
+		visit(mydata[wids[i]][0], 0, "t" + i, "_1", populateCell);
 	}
 }
 
