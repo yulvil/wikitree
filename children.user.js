@@ -5,6 +5,7 @@
 // @description  Put siblings/children on separate lines
 // @author       yulvil
 // @match        http*://www.wikitree.com/wiki/*
+// @match        http*://www.wikitree.com/index.php*
 // @grant        none
 // @updateURL    https://raw.githubusercontent.com/yulvil/wikitree/master/children.user.js
 // ==/UserScript==
